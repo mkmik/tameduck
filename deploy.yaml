@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tameduck-server
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: tameduck-server
+  template:
+    metadata:
+      labels:
+        app: tameduck-server
+        app.kubernetes.io/part-of: tameduck
+        mkm.pub/podcalipse: "true"
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: server
+        image: "ko://github.com/mkmik/tameduck/cmd/server"
+        env:
+        - name: TAMEDUCK_PRE_STOP_SLEEP
+          value: 8s
+        ports:
+        - name: http
+          containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 1
+          periodSeconds: 2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tameduck-client
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: tameduck-client
+  template:
+    metadata:
+      labels:
+        app: tameduck-client
+        app.kubernetes.io/part-of: tameduck
+    spec:
+      containers:
+      - name: client
+        image: "ko://github.com/mkmik/tameduck/cmd/client"
+        ports:
+        - containerPort: 8082
+          name: http
+        env:
+        - name: TAMEDUCK_RATE
+          value: "4"
+        - name: TAMEDUCK_TARGET
+          value: "http://tameduck:8080"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tameduck
+  labels:
+    app: tameduck
+spec:
+  selector:
+    app: tameduck-server
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tameduck-client
+  labels:
+    app: tameduck-client
+spec:
+  selector:
+    app: tameduck-client
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8082
+

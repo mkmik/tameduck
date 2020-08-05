@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tameduck-lb
+  labels:
+    app: tameduck
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+spec:
+  selector:
+    app: tameduck-server
+  type: LoadBalancer
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: tameduck-lb
+spec:
+  backend:
+    serviceName: tameduck-lb
+    servicePort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tameduck-client-lb
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: tameduck-client-lb
+  template:
+    metadata:
+      labels:
+        app: tameduck-client-lb
+        app.kubernetes.io/part-of: tameduck
+    spec:
+      containers:
+      - name: client
+        image: "ko://github.com/mkmik/tameduck/cmd/client"
+        ports:
+        - containerPort: 8082
+          name: http
+        env:
+        - name: TAMEDUCK_RATE
+          value: "4"
+        - name: TAMEDUCK_TARGET
+          value: "http://34.107.8.187:80"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tameduck-client-lb
+  labels:
+    app: tameduck-client-lb
+spec:
+  selector:
+    app: tameduck-client-lb
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8082

@@ -1,0 +1,59 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: tameduck
+  name: tameduck
+spec:
+  jobLabel: app
+  endpoints:
+  - interval: 4s
+    port: http
+  selector:
+    matchLabels:
+      app: tameduck
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: tameduck-client
+  name: tameduck-client
+spec:
+  jobLabel: app
+  endpoints:
+  - interval: 4s
+    port: http
+  selector:
+    matchLabels:
+      app: tameduck-client
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: tameduck-client-lb
+  name: tameduck-client-lb
+spec:
+  jobLabel: app
+  endpoints:
+  - interval: 4s
+    port: http
+  selector:
+    matchLabels:
+      app: tameduck-client-lb
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: tameduck-client-neg
+  name: tameduck-client-neg
+spec:
+  jobLabel: app
+  endpoints:
+  - interval: 4s
+    port: http
+  selector:
+    matchLabels:
+      app: tameduck-client-neg

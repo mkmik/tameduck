@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bitnami-labs/flagenv"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/time/rate"
@@ -14,7 +15,7 @@ import (
 
 // flags are flags.
 type Flags struct {
-	Addr    string
+	Target  string
 	Listen  string
 	Rate    float64
 	Timeout time.Duration
@@ -24,9 +25,9 @@ func (f *Flags) Bind(fs *flag.FlagSet) {
 	if fs == nil {
 		fs = flag.CommandLine
 	}
-	fs.StringVar(&f.Addr, "a", "http://localhost:8080", "Addr:port to connect to hammer")
-	fs.StringVar(&f.Listen, "l", ":8082", "Addr:port to listen to (for /metrics)")
-	fs.Float64Var(&f.Rate, "r", 1, "Request per second")
+	fs.StringVar(&f.Target, "target", "http://localhost:8080", "Addr:port to connect to hammer")
+	fs.StringVar(&f.Listen, "listen", ":8082", "Addr:port to listen to (for /metrics)")
+	fs.Float64Var(&f.Rate, "rate", 1, "Request per second")
 	fs.DurationVar(&f.Timeout, "timeout", 60*time.Second, "timeout")
 }
 
@@ -37,10 +38,16 @@ var (
 		Help:    "HTTP request latency distributions.",
 		Buckets: prometheus.DefBuckets,
 	}, []string{"code", "method"})
+
+	reqErrors = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "http_request_transport_error_total",
+		Help: "Number of requests that resulted in connection errors",
+	})
 )
 
 func init() {
 	prometheus.MustRegister(reqDurationsHistogram)
+	prometheus.MustRegister(reqErrors)
 	prometheus.MustRegister(prometheus.NewBuildInfoCollector())
 }
 
@@ -49,6 +56,7 @@ func hit(httpClient *http.Client, u string) {
 	klog.Infof("hitting %s", u)
 	_, err := httpClient.Get(u)
 	if err != nil {
+		reqErrors.Inc()
 		klog.Error(err)
 	}
 }
@@ -78,7 +86,7 @@ func mainE(flags Flags) error {
 			return err
 		}
 
-		go hit(httpClient, flags.Addr)
+		go hit(httpClient, flags.Target)
 	}
 	return nil
 }
@@ -87,6 +95,7 @@ func main() {
 	var flags Flags
 	flags.Bind(nil)
 	klog.InitFlags(nil)
+	flagenv.SetFlagsFromEnv("TAMEDUCK", flag.CommandLine)
 	flag.Parse()
 
 	if err := mainE(flags); err != nil {
