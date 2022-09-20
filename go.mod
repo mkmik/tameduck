@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/bitnami-labs/flagenv v0.1.0
 	github.com/prometheus/client_golang v1.12.2
-	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9
+	golang.org/x/time v0.0.0-20220920022843-2ce7c2934d45
 	k8s.io/klog/v2 v2.70.1
 )
 
